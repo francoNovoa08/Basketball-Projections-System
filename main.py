@@ -86,11 +86,6 @@ def main():
     )
     east_processed = east_processed.rename(columns={col: f"away_{col}" for col in stats_cols})
 
-    print("Available columns in east_processed:", east_processed.columns.tolist())
-    missing_columns = [col for col in features if col not in east_processed.columns]
-    print("Missing columns:", missing_columns)
-
-
     X_east = east_processed[features]
     east_games["WINNING %"] = model.predict_proba(X_east)[:, 1] * 100
     east_games.to_csv("East_Predictions.csv", index=False)
