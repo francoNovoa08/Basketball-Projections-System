@@ -1,0 +1,95 @@
+import pandas as pd
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.tree import export_graphviz
+import matplotlib.pyplot as plt
+import seaborn as sns
+import graphviz
+
+
+def main():
+    team_region = pd.read_csv("Team Region Groups.csv")
+    games_2022 = pd.read_csv("games_2022.csv")
+    east_games = pd.read_csv("East Regional Games to predict.csv")
+
+
+    numeric_columns = ["FGA_2", "FGM_2", "FTA", "FTM", "AST", "BLK", "STL", "TOV", "rest_days"]
+    
+    games_2022["game_date"] = pd.to_datetime(games_2022["game_date"], format="%Y-%m-%d")
+    games_2022[numeric_columns] = games_2022[numeric_columns].apply(pd.to_numeric, errors="coerce")
+
+    games_merged = pd.merge(games_2022, team_region, on="team", how="left")
+
+    home = games_merged[games_merged["home_away_NS"] == 1].add_prefix("home_")
+    away = games_merged[games_merged["home_away_NS"] == -1].add_prefix("away_")
+
+    games_combined = pd.merge(
+        home,
+        away,
+        left_on="home_game_id",
+        right_on="away_game_id",
+        suffixes=("", "_away"),
+    )
+    games_combined["home_win"] = (games_combined["home_team_score"] > games_combined["away_team_score"]).astype(int)
+
+    # Model training
+    features = [
+        "home_FGA_2", "home_FGM_2", "home_AST",
+        "away_FGA_2", "away_FGM_2", "away_AST",
+        "home_rest_days", "away_rest_days"
+    ]
+    X = games_combined[features]
+    y = games_combined["home_win"]
+
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
+    model = RandomForestClassifier()
+    model.fit(X_train, y_train)
+
+    team_stats = games_merged.groupby("team")[numeric_columns].mean().reset_index()
+
+    east_processed = pd.merge(
+        east_games,
+        team_stats,
+        left_on="team_home",
+        right_on="team",
+        how="left"
+    )
+    stats_cols = team_stats.columns.difference(['team'])
+    east_processed = east_processed.rename(columns={col: f"home_{col}" for col in stats_cols})
+
+    east_processed = pd.merge(
+        east_processed,
+        team_stats,
+        left_on="team_away",
+        right_on="team",
+        how="left"
+    )
+    east_processed = east_processed.rename(columns={col: f"away_{col}" for col in stats_cols})
+
+    X_east = east_processed[features]
+    east_games["WINNING %"] = model.predict_proba(X_east)[:, 1] * 100
+    east_games.to_csv("East_Predictions.csv", index=False)
+
+    # Bar plot of predicted winning percentages
+    east_games_sorted = east_games.sort_values("WINNING %", ascending=False)
+    plt.figure(figsize=(10, 6))
+    sns.barplot(x="team_home", y="WINNING %", data=east_games_sorted)
+    plt.xticks(rotation=45)
+    plt.title("Predicted Winning Percentages for Home Teams")
+    plt.xlabel("Home Team")
+    plt.ylabel("Winning Percentage")
+    plt.show()
+
+    # Export one tree from the forest
+    tree = model.estimators_[0]
+    dot_data = export_graphviz(tree, out_file=None,
+                            feature_names=features,
+                            class_names=["Loss", "Win"],
+                            filled=True, rounded=True,
+                            special_characters=True)
+    graph = graphviz.Source(dot_data)
+    graph.render("decision_tree") 
+
+
+if __name__ == "__main__":
+    main()
