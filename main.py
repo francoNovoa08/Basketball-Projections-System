@@ -13,7 +13,11 @@ def main():
     east_games = pd.read_csv("East Regional Games to predict.csv")
 
 
-    numeric_columns = ["FGA_2", "FGM_2", "FTA", "FTM", "AST", "BLK", "STL", "TOV", "rest_days"]
+    numeric_columns = [
+        "FGA_2", "FGM_2", "FGA_3", "FGM_3", "FTA", "FTM", "AST", "BLK", "STL", "TOV", "rest_days",
+        "TOV_team", "DREB", "OREB", "F_personal", "F_tech", "team_score", "opponent_team_score",
+        "largest_lead", "tz_dif_H_E", "prev_game_dist", "travel_dist"
+    ]
     
     games_2022["game_date"] = pd.to_datetime(games_2022["game_date"], format="%Y-%m-%d")
     games_2022[numeric_columns] = games_2022[numeric_columns].apply(pd.to_numeric, errors="coerce")
@@ -35,8 +39,24 @@ def main():
     # Model training
     features = [
         "home_FGA_2", "home_FGM_2", "home_AST",
+        "home_FGA_3", "home_FGM_3", "home_FTA",
+        "away_FGA_3", "away_FGM_3", "away_FTA",
         "away_FGA_2", "away_FGM_2", "away_AST",
-        "home_rest_days", "away_rest_days"
+        "home_rest_days", "away_rest_days",
+        "home_BLK", "away_BLK",
+        "home_FTM", "away_FTM",
+        "home_STL", "away_STL",
+        "home_TOV_team", "away_TOV_team",
+        "home_DREB", "away_DREB",
+        "home_OREB", "away_OREB",
+        "home_F_personal", "away_F_personal",
+        "home_F_tech", "away_F_tech",
+        "home_team_score", "away_team_score",
+        "home_opponent_team_score", "away_opponent_team_score",
+        "home_largest_lead", "away_largest_lead",
+        "home_tz_dif_H_E", "away_tz_dif_H_E",
+        "home_prev_game_dist", "away_prev_game_dist",
+        "home_travel_dist", "away_travel_dist"
     ]
     X = games_combined[features]
     y = games_combined["home_win"]
@@ -65,6 +85,11 @@ def main():
         how="left"
     )
     east_processed = east_processed.rename(columns={col: f"away_{col}" for col in stats_cols})
+
+    print("Available columns in east_processed:", east_processed.columns.tolist())
+    missing_columns = [col for col in features if col not in east_processed.columns]
+    print("Missing columns:", missing_columns)
+
 
     X_east = east_processed[features]
     east_games["WINNING %"] = model.predict_proba(X_east)[:, 1] * 100
