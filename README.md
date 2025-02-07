@@ -52,5 +52,4 @@ python main.py
 - Random Forest Classifier with default parameters
 - 80% of data was used for training; 20% was used for testing the model (80-20 train-test-split)
 
-**Author:** Franco Novoa
 **Team:** Markham Masters, Perú
