@@ -1,7 +1,7 @@
 # 2025 Wharton Data Science Competition
 ## NCAA Basketball Projections Machine Learning System
 
-This project was built for the Wharton High School Data Science Competition. It utilises a Random FOrest Classifier to predict the winning percentages of teams in the NCAA basketball East region. 
+This project was built for the Wharton High School Data Science Competition. It utilises a Random Forest Classifier to predict the winning percentages of teams in the NCAA basketball East region. 
 A model is trained on the game data provided and generates predictions along with two visualisations. 
 
 ### Features
