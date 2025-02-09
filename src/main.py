@@ -29,7 +29,7 @@ def process_data(games_df, team_regions):
     num_type_cols = [
         "FGA_2", "FGM_2", "FGA_3", "FGM_3", "FTA", "FTM", "AST", "BLK", "STL", "TOV", "rest_days",
         "TOV_team", "DREB", "OREB", "F_personal", "F_tech", "team_score", "opponent_team_score",
-        "largest_lead", "tz_dif_H_E", "prev_game_dist", "travel_dist"
+        "largest_lead", "prev_game_dist", "travel_dist"
     ] # Add from csv given by Wharton
 
     try:
@@ -63,6 +63,10 @@ def train(X, y):
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     model = RandomForestClassifier(random_state=42)
     model.fit(X_train, y_train)
+
+    feature_importance = pd.Series(model.feature_importances_, index=X.columns).sort_values(ascending=False)
+    print("Feature Importance:\n", feature_importance)
+
     return model
 
 
@@ -148,7 +152,6 @@ def main():
         "home_team_score", "away_team_score",
         "home_opponent_team_score", "away_opponent_team_score",
         "home_largest_lead", "away_largest_lead",
-        "home_tz_dif_H_E", "away_tz_dif_H_E",
         "home_prev_game_dist", "away_prev_game_dist",
         "home_travel_dist", "away_travel_dist"
     ]
