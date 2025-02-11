@@ -13,10 +13,10 @@ def load_data():
         games_data = pd.read_csv("src/Data/games_2022.csv")
         east_games = pd.read_csv("src/Data/East Regional Games to predict.csv")
     except FileNotFoundError:
-        print(f"File not found, check file paths")
+        print("File not found, check file paths")
         return
     except pd.errors.ParserError:
-        print(f"CSV parsing error")
+        print("CSV parsing error")
         return
     except Exception as e:
         print(f"Error occurred: {e}")
@@ -30,7 +30,7 @@ def process_data(games_df, team_regions):
         "FGA_2", "FGM_2", "FGA_3", "FGM_3", "FTA", "FTM", "AST", "BLK", "STL", "TOV", "rest_days",
         "TOV_team", "DREB", "OREB", "F_personal", "F_tech", "team_score", "opponent_team_score",
         "largest_lead", "prev_game_dist", "travel_dist"
-    ] # Add from csv given by Wharton
+    ]
 
     try:
         games_df["game_date"] = pd.to_datetime(games_df["game_date"], format="%Y-%m-%d")
@@ -39,7 +39,6 @@ def process_data(games_df, team_regions):
     except Exception as e:
         print(f"Error occurred: {e}")
         return
-    print(num_type_cols)
     return merged_df, num_type_cols
 
 
@@ -72,15 +71,15 @@ def train(X, y):
 
 def prep_east(east_df, team_stats):
     try:
+        stats_cols = [col for col in team_stats.columns if col != "team"]
+        
         east_df = pd.merge(
             east_df,
             team_stats,
             left_on="team_home",
             right_on="team",
             how="left"
-        )
-        stats_cols = [col for col in team_stats.columns if col != "team"]
-        east_df = east_df.rename(columns={col: f"home_{col}" for col in stats_cols})
+        ).drop(columns=["team"]).rename(columns={col: f"home_{col}" for col in stats_cols})
         
         east_df = pd.merge(
             east_df,
@@ -88,8 +87,7 @@ def prep_east(east_df, team_stats):
             left_on="team_away",
             right_on="team",
             how="left"
-        )
-        east_df = east_df.rename(columns={col: f"away_{col}" for col in stats_cols})
+        ).drop(columns=["team"]).rename(columns={col: f"away_{col}" for col in stats_cols})
     except KeyError as e:
         print(f"Merge error: {e}")
         return None
@@ -100,7 +98,7 @@ def prep_east(east_df, team_stats):
 def make_win_percent_barchart(games_df):
     games_sorted = games_df.sort_values("WINNING %", ascending=False)
     plt.figure(figsize=(10, 6))
-    sns.barplot(x="team_home", y="WINNING %", data=games_sorted)
+    sns.barplot(x="team_home", y="WINNING %", data=games_sorted, order=games_sorted["team_home"])
     plt.xticks(rotation=45)
     plt.title("Predicted Winning Percentages for Home Teams")
     plt.xlabel("Home Team")
@@ -167,12 +165,12 @@ def main():
         return
 
     X_east = east_df[features]
-    east_games["WINNING %"] = model.predict_proba(X_east)[:, 1] * 100 # Place in column given by wharton (new csv though)
+    east_games["WINNING %"] = model.predict_proba(X_east)[:, 1] * 100
     east_games.to_csv("src/Data/East_Predictions.csv", index=False)
 
-    make_win_percent_barchart(east_games) # Completely unnecesary but fun to make
+    make_win_percent_barchart(east_games)
 
-    export_decision_tree(model, features) # Kinda useless until Phase 2
+    export_decision_tree(model, features)
 
 
 if __name__ == "__main__":
