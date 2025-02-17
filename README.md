@@ -7,6 +7,7 @@ A model is trained on the game data provided and generates predictions along wit
 ### Features
 - Predicts home team winning probabilities for the specific matches, outputting them in a CSV
 - Generates a bar chart to visualise the predictions
+- Ranks teams in North, South and West regions by expected wins against every other team in the region
 - Exports a pdf of a sample decision tree used in the Random Forest model. 
 *Note: The Random Forest model uses many decision trees; the pdf generated is of one of them*
 
@@ -46,10 +47,10 @@ python main.py
 - East_Predictions.csv: Contains predicted winning percentages for home teams.
 - decision_tree.pdf: Visualisation of one decision tree from the Random Forest.
 - A bar plot displaying sorted winning percentages (shown interactively).
+- North_Ranking.csv, South_Ranking.csv and West_Ranking.csv: Files containing all teams in a given region ranked in descending order by their expected wins
 
 ### Model details
 - Trained with several values given by the competition
 - Random Forest Classifier with default parameters
-- 80% of data was used for training; 20% was used for testing the model (80-20 train-test-split)
 
 **Team:** Markham Masters, Perú

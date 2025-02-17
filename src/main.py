@@ -122,6 +122,46 @@ def export_decision_tree(model, features):
     graph.render("src/decision_tree")
 
 
+def generate_region_rankings(model, team_stats, team_regions, features, regions_to_rank):
+    for region_name in regions_to_rank:
+        region_teams = team_regions.loc[team_regions['region'] == region_name, 'team'].tolist()
+        valid_teams = team_stats[team_stats['team'].isin(region_teams)]['team'].tolist()
+        
+        if not valid_teams:
+            print(f"No teams with data for {region_name}.")
+            continue
+        
+        rankings = []
+        for team_a in valid_teams:
+            a_stats = team_stats.loc[team_stats['team'] == team_a].iloc[0]
+            expected_wins = 0.0
+            
+            for team_b in valid_teams:
+                if team_a == team_b:
+                    continue
+                b_stats = team_stats.loc[team_stats['team'] == team_b].iloc[0]
+                
+                # Home game for Team A vs Team B
+                home_features = {feature: a_stats[feature.split('_', 1)[1]] if feature.startswith('home_') else
+                                  b_stats[feature.split('_', 1)[1]] if feature.startswith('away_') else 0
+                                  for feature in features}
+                home_proba = model.predict_proba(pd.DataFrame([home_features]))[0][1]
+                expected_wins += home_proba
+                
+                # Away game for Team A vs Team B 
+                away_features = {feature: b_stats[feature.split('_', 1)[1]] if feature.startswith('home_') else
+                                  a_stats[feature.split('_', 1)[1]] if feature.startswith('away_') else 0
+                                  for feature in features}
+                away_proba = model.predict_proba(pd.DataFrame([away_features]))[0][1]
+                expected_wins += (1 - away_proba)
+            
+            rankings.append({'Team': team_a, 'Expected Wins': expected_wins})
+        
+        ranking_df = pd.DataFrame(rankings).sort_values('Expected Wins', ascending=False)
+        ranking_df.to_csv(f"src/Data/{region_name}_Ranking.csv", index=False)
+        print(f"Generated ranking for {region_name}.")
+
+
 def main():
     team_regions, games_data, east_games = load_data()
     if team_regions is None or games_data is None or east_games is None:
@@ -159,6 +199,8 @@ def main():
     model = train(X, y)
 
     team_stats = merged_games.groupby("team")[num_type_columns].mean().reset_index()
+    # Phase 1a
+    generate_region_rankings(model, team_stats, team_regions, features, ["North", "West", "South"])
 
     east_df = prep_east(east_games, team_stats)
     if east_df is None:
